@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "MailShield",
+  "version": "0.1.0",
+  "description": "Analyse locale des emails pour détecter les risques de phishing.",
+  "permissions": [],
+  "content_scripts": [
+    {
+      "matches": ["https://mail.google.com/*"],
+      "js": [
+          "analyzer/trusted-domains.js",
+          "analyzer/domain-parser.js",
+          "analyzer/domain-analyzer.js",
+          "analyzer/sender.js",
+          "analyzer/links.js",
+          "analyzer/content-analyzer.js",
+          "analyzer/context-analyzer.js",
+          "analyzer/behavior-analyzer.js",
+          "analyzer/attachment-analyzer.js",
+          "analyzer/risk-engine.js",
+          "ui/ui.js",
+          "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}
