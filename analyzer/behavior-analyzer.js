@@ -515,10 +515,10 @@ function analyzeBehavior(email) {
     // 🧪 DEBUG
     // ========================================
 
-    console.log(
-        "🧠 MailShield — Behavior réel :",
-        result
-    );
+    // console.log(
+    //     "🧠 MailShield — Behavior réel :",
+    //     result
+    // );
 
 
     return result;

@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>MailShield — Dashboard</title>
+
+    <link rel="stylesheet" href="dashboard.css">
+
+</head>
+
+<body>
+
+    <div class="dashboard">
+
+        <header class="header">
+
+            <div>
+
+                <h1>🛡️ MailShield</h1>
+
+                <p>
+                    Tableau de bord de sécurité
+                </p>
+
+            </div>
+
+        </header>
+
+
+        <main>
+
+            <section class="overview">
+
+                <h2>📊 Vue d'ensemble</h2>
+
+
+                <div class="cards">
+
+                    <div class="card">
+
+                        <span class="card-title">
+                            Emails analysés
+                        </span>
+
+                        <strong id="total">
+                            0
+                        </strong>
+
+                    </div>
+
+
+                    <div class="card">
+
+                        <span class="card-title">
+                            Score moyen
+                        </span>
+
+                        <strong id="averageScore">
+                            0
+                        </strong>
+
+                    </div>
+
+
+                    <div class="card low">
+
+                        <span class="card-title">
+                            🟢 Risque faible
+                        </span>
+
+                        <strong id="low">
+                            0
+                        </strong>
+
+                    </div>
+
+
+                    <div class="card medium">
+
+                        <span class="card-title">
+                            🟠 Risque moyen
+                        </span>
+
+                        <strong id="medium">
+                            0
+                        </strong>
+
+                    </div>
+
+
+                    <div class="card high">
+
+                        <span class="card-title">
+                            🔴 Risque élevé
+                        </span>
+
+                        <strong id="high">
+                            0
+                        </strong>
+
+                    </div>
+
+
+                    <div class="card critical">
+
+                        <span class="card-title">
+                            🚨 Risque critique
+                        </span>
+
+                        <strong id="critical">
+                            0
+                        </strong>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <section class="signals">
+
+                <div class="signal-card">
+
+                    <span>
+                        ⚠️ Signaux détectés
+                    </span>
+
+                    <strong id="totalWarnings">
+                        0
+                    </strong>
+
+                </div>
+
+            </section>
+
+
+            <section class="history">
+
+                <h2>🕐 Dernières analyses</h2>
+
+                <div id="historyList">
+
+                    <p class="empty-history">
+                        Chargement de l'historique...
+                    </p>
+
+                </div>
+
+            </section>
+
+
+            <section class="analysis-detail" id="analysisDetail">
+
+                <div class="detail-header">
+
+                    <h2>🔎 Détail de l'analyse</h2>
+
+                    <button id="closeDetail">
+                        ✕
+                    </button>
+
+                </div>
+
+                <div id="detailContent">
+
+                    <p>
+                        Sélectionnez une analyse dans l'historique.
+                    </p>
+
+                </div>
+
+            </section>
+
+
+            <section class="status">
+
+                <p id="status">
+                    Chargement des statistiques...
+                </p>
+
+            </section>
+
+        </main>
+
+    </div>
+
+
+    <script src="dashboard.js"></script>
+
+</body>
+
+</html>

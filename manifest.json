@@ -3,7 +3,31 @@
   "name": "MailShield",
   "version": "0.1.0",
   "description": "Analyse locale des emails pour détecter les risques de phishing.",
-  "permissions": [],
+  "permissions": [
+      "storage"
+  ],
+
+  "background": {
+      "service_worker": "background.js"
+  },
+
+  "action": {
+      "default_title": "Ouvrir MailShield"
+  },
+
+  "web_accessible_resources": [
+      {
+          "resources": [
+              "dashboard.html",
+              "dashboard.css",
+              "dashboard.js"
+          ],
+          "matches": [
+              "https://mail.google.com/*"
+          ]
+      }
+  ],
+
   "content_scripts": [
     {
       "matches": ["https://mail.google.com/*"],
@@ -18,6 +42,7 @@
           "analyzer/behavior-analyzer.js",
           "analyzer/attachment-analyzer.js",
           "analyzer/risk-engine.js",
+          "analyzer/history-manager.js",
           "ui/ui.js",
           "content.js"
       ],

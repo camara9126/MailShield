@@ -480,15 +480,15 @@ function calculateRisk(email) {
 const attachments =
     email.attachments || [];
 
-console.log(
-    "📎 ATTACHMENTS DANS RISK ENGINE :",
-    email.attachments
-);
+// console.log(
+//     "📎 ATTACHMENTS DANS RISK ENGINE :",
+//     email.attachments
+// );
 
-console.log(
-    "📎 NOMBRE DE PIÈCES JOINTES :",
-    attachments.length
-);
+// console.log(
+//     "📎 NOMBRE DE PIÈCES JOINTES :",
+//     attachments.length
+// );
 attachments.forEach(
     attachment => {
 

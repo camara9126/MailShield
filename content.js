@@ -223,10 +223,10 @@ function detectEmail() {
             analysis: analyzeAttachment(attachment)
         }));
 
-    console.log(
-        "📎 MailShield — pièces jointes :",
-        analyzedAttachments
-    );
+    // console.log(
+    //     "📎 MailShield — pièces jointes :",
+    //     analyzedAttachments
+    // );
 
 
     /*
@@ -325,17 +325,12 @@ function detectEmail() {
         risk;
 
 
-        console.log(
-            "🛡️ RISK ENVOYÉ AU PANNEAU :",
-            risk
-        );
+    saveAnalysisHistory(
+        email,
+        risk
+    );
 
-        console.log(
-            "🛡️ SCORE :",
-            risk.score,
-            " | LEVEL :",
-            risk.level
-        );
+
     /*
      * Affichage du panneau
      */
@@ -432,18 +427,6 @@ document.addEventListener(
             analyzeLink(
                 realUrl
             );
-
-
-        console.log(
-            "🛡️ MailShield — lien cliqué :",
-            realUrl
-        );
-
-
-        console.log(
-            "🛡️ MailShield — score du lien :",
-            analysis.score
-        );
 
 
         /*
