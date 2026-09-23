@@ -60,7 +60,7 @@ function getRealLinkUrl(url) {
  * Analyse de l'email actuellement ouvert
  */
 
-function detectEmail() {
+async function detectEmail() {
 
     const subjectElement =
         document.querySelector('h2.hP');
@@ -79,6 +79,27 @@ function detectEmail() {
         !senderElement ||
         !bodyElement
     ) {
+
+        return;
+    }
+
+
+    /*
+    * ==========================================
+    * Vérification du droit d'analyse
+    * ==========================================
+    */
+
+    const analysisPermission =
+        await canAnalyze();
+
+
+    if (!analysisPermission.allowed) {
+
+        console.log(
+            "🛡️ MailShield — analyse bloquée :",
+            analysisPermission.reason
+        );
 
         return;
     }
@@ -223,11 +244,6 @@ function detectEmail() {
             analysis: analyzeAttachment(attachment)
         }));
 
-    // console.log(
-    //     "📎 MailShield — pièces jointes :",
-    //     analyzedAttachments
-    // );
-
 
     /*
     * Suppression des liens identiques
@@ -323,6 +339,14 @@ function detectEmail() {
 
     email.risk =
         risk;
+
+
+        
+    /*
+    * Compter l'analyse
+    */
+
+    await incrementAnalysis();
 
 
     saveAnalysisHistory(

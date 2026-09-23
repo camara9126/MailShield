@@ -3,6 +3,12 @@
   "name": "MailShield",
   "version": "0.1.0",
   "description": "Analyse locale des emails pour détecter les risques de phishing.",
+  "icons": {
+        "16": "icons/icon16.png",
+        "32": "icons/icon32.png",
+        "48": "icons/icon48.png",
+        "128": "icons/icon128.png"
+    },
   "permissions": [
       "storage"
   ],
@@ -12,8 +18,14 @@
   },
 
   "action": {
-      "default_title": "Ouvrir MailShield"
-  },
+        "default_title": "Ouvrir MailShield",
+        "default_icon": {
+            "16": "icons/icon16.png",
+            "32": "icons/icon32.png",
+            "48": "icons/icon48.png",
+            "128": "icons/icon128.png"
+        }
+    },
 
   "web_accessible_resources": [
       {
@@ -43,6 +55,7 @@
           "analyzer/attachment-analyzer.js",
           "analyzer/risk-engine.js",
           "analyzer/history-manager.js",
+          "storage/user-storage.js",
           "ui/ui.js",
           "content.js"
       ],
