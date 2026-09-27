@@ -138,6 +138,18 @@ function showMailShieldPanel(risk) {
         levelText =
             "RISQUE ÉLEVÉ";
 
+    } else if (
+        risk.level === "critical"
+    ) {
+
+        levelColor =
+            "#8b0000";
+
+        levelIcon =
+            "🚨";
+
+        levelText =
+            "RISQUE CRITIQUE";
     }
 
 

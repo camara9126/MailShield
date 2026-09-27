@@ -22,14 +22,14 @@ function calculateRisk(email) {
      * CONFIGURATION DES PLAFONDS
      * ==========================================
      *
-     * TOTAL = 100
+     * Plafonds par catégorie. Le score final est limité à 100.
      */
 
     const MAX_SENDER_SCORE = 20;
     const MAX_LINK_SCORE = 30;
     const MAX_CONTENT_SCORE = 20;
     const MAX_CONTEXT_SCORE = 10;
-    const MAX_BEHAVIOR_SCORE = 15;
+    const MAX_BEHAVIOR_SCORE = 10;
     const MAX_ATTACHMENT_SCORE = 10;
 
 
@@ -101,6 +101,11 @@ function calculateRisk(email) {
             maxScore = MAX_BEHAVIOR_SCORE;
             currentScore = behaviorScore;
 
+        } else if (category === "attachment") {
+
+            maxScore = MAX_ATTACHMENT_SCORE;
+            currentScore = attachmentScore;
+
         } else {
 
             return;
@@ -154,6 +159,10 @@ function calculateRisk(email) {
         } else if (category === "behavior") {
 
             behaviorScore += appliedPoints;
+
+        } else if (category === "attachment") {
+
+            attachmentScore += appliedPoints;
         }
 
 
@@ -265,10 +274,17 @@ function calculateRisk(email) {
                         Number(analysis.score) || 0;
 
 
-                    /*
-                     * Premier lien :
-                     * poids principal.
-                     */
+                 /*
+                    * ==========================================
+                    * PONDÉRATION DES LIENS
+                    * ==========================================
+                    *
+                    * Le premier lien suspect conserve son poids
+                    * principal.
+                    *
+                    * Les liens suivants contribuent également,
+                    * mais avec un poids réduit.
+                    */
 
                     if (index === 0) {
 
@@ -278,17 +294,20 @@ function calculateRisk(email) {
                                 MAX_LINK_SCORE
                             );
 
-                    } else {
-
-                        /*
-                         * Les liens supplémentaires
-                         * contribuent moins.
-                         */
+                    } else if (index === 1) {
 
                         points =
                             Math.min(
-                                points * 0.25,
-                                8
+                                points * 0.50,
+                                10
+                            );
+
+                    } else {
+
+                        points =
+                            Math.min(
+                                points * 0.35,
+                                7
                             );
                     }
 
@@ -472,25 +491,18 @@ function calculateRisk(email) {
 
 
     /*
-     * ==========================================
-     * 6. ANALYSE DES PIÈCES JOINTES
-     * ==========================================
-     */
+    * ==========================================
+    * 6. ANALYSE DES PIÈCES JOINTES
+    * ==========================================
+    */
 
-const attachments =
-    email.attachments || [];
+    const attachments =
+        Array.isArray(email.attachments)
+            ? email.attachments
+            : [];
 
-// console.log(
-//     "📎 ATTACHMENTS DANS RISK ENGINE :",
-//     email.attachments
-// );
 
-// console.log(
-//     "📎 NOMBRE DE PIÈCES JOINTES :",
-//     attachments.length
-// );
-attachments.forEach(
-    attachment => {
+    attachments.forEach(attachment => {
 
         if (
             !attachment ||
@@ -499,10 +511,6 @@ attachments.forEach(
             return;
         }
 
-
-        /*
-         * Score individuel de la pièce jointe
-         */
 
         const rawScore =
             Number(
@@ -516,189 +524,453 @@ attachments.forEach(
 
 
         /*
-         * ==========================================
-         * NORMALISATION DU SCORE
-         * ==========================================
-         *
-         * Attachment Analyzer :
-         *
-         * 0   → 0
-         * 20  → 2
-         * 35  → 3.5
-         * 50  → 5
-         * 75  → 7.5
-         * 100 → 10
-         *
-         * Le module Pièces jointes possède
-         * au maximum 10 points dans le score final.
-         */
+        * ==========================================
+        * DÉTECTION DES SIGNAUX CRITIQUES
+        * ==========================================
+        */
 
-        const normalizedScore =
-            Math.min(
-                (rawScore / 100) *
-                MAX_ATTACHMENT_SCORE,
+        const attachmentWarnings =
+            Array.isArray(
+                attachment.analysis.warnings
+            )
+                ? attachment.analysis.warnings
+                : [];
 
-                MAX_ATTACHMENT_SCORE
-            );
+
+        const hasCriticalAttachmentSignal =
+            attachmentWarnings.some(warning => {
+
+                const category =
+                    typeof warning === "string"
+                        ? ""
+                        : warning.category || "";
+
+                const message =
+                    typeof warning === "string"
+                        ? warning.toLowerCase()
+                        : (warning.message || "").toLowerCase();
+
+
+                return (
+
+                    category === "dangerous-extension" ||
+
+                    category === "double-extension" ||
+
+                    message.includes(
+                        "extension potentiellement dangereuse"
+                    ) ||
+
+                    message.includes(
+                        "extension potentiellement dangereuse dissimulée"
+                    )
+
+                );
+
+            });
 
 
         /*
-         * ==========================================
-         * SCORE RESTANT DISPONIBLE
-         * ==========================================
-         */
+        * ==========================================
+        * NORMALISATION
+        * ==========================================
+        *
+        * Les pièces jointes peuvent contribuer
+        * jusqu'à 10 points au score global.
+        *
+        * Un signal critique utilise directement
+        * le plafond de 10 points.
+        */
 
-        const remaining =
-            MAX_ATTACHMENT_SCORE -
-            attachmentScore;
+        let normalizedScore;
 
 
-        if (remaining <= 0) {
-            return;
+        if (
+            hasCriticalAttachmentSignal
+        ) {
+
+            normalizedScore =
+                MAX_ATTACHMENT_SCORE;
+
+        } else {
+
+            normalizedScore =
+                Math.min(
+                    (rawScore / 100) *
+                    MAX_ATTACHMENT_SCORE,
+                    MAX_ATTACHMENT_SCORE
+                );
         }
 
 
         /*
-         * ==========================================
-         * POINTS APPLIQUÉS
-         * ==========================================
-         */
+        * ==========================================
+        * AVERTISSEMENTS
+        * ==========================================
+        */
 
-        const appliedPoints =
-            Math.min(
-                normalizedScore,
-                remaining
+        if (
+            attachmentWarnings.length > 0
+        ) {
+
+            /*
+            * Pour un signal critique, on ne divise
+            * pas les 10 points entre tous les warnings.
+            *
+            * Cela évite par exemple :
+            *
+            * double-extension = 5
+            * nom suspect = 5
+            *
+            * alors que le double-extension est
+            * beaucoup plus important.
+            */
+
+            attachmentWarnings.forEach(
+                warning => {
+
+                    const message =
+                        typeof warning === "string"
+                            ? warning
+                            : warning.message ||
+                            String(warning);
+
+
+                    const category =
+                        typeof warning === "string"
+                            ? ""
+                            : warning.category || "";
+
+
+                    let points;
+
+
+                    /*
+                    * Signal critique
+                    */
+
+                    if (
+                        category === "double-extension" ||
+                        category === "dangerous-extension"
+                    ) {
+
+                        points =
+                            MAX_ATTACHMENT_SCORE;
+
+                    } else {
+
+                        /*
+                        * Pour les autres warnings,
+                        * contribution proportionnelle.
+                        */
+
+                        points =
+                            normalizedScore /
+                            attachmentWarnings.length;
+                    }
+
+
+                    addSignal(
+                        "attachment",
+                        points,
+                        `Pièce jointe "${attachment.name}" : ${message}`
+                    );
+
+                }
             );
 
+        } else {
 
-        attachmentScore +=
-            appliedPoints;
-    }
-);
+            addSignal(
+                "attachment",
+                normalizedScore,
+                `Pièce jointe "${attachment.name}" présentant des signaux de risque.`
+            );
+
+        }
+
+    });
 
 
     /*
-     * ==========================================
-     * 7. DÉTECTION DES SIGNAUX CRITIQUES
-     * ==========================================
-     */
+    * ==========================================
+    * 7. DÉTECTION DES SIGNAUX CRITIQUES
+    * ==========================================
+    */
 
     let hasCriticalSignal = false;
 
 
-    warnings.forEach(
-        warning => {
+    /*
+    * Liste des signaux détectés
+    */
 
-            const message =
-                (warning.message || "")
-                    .toLowerCase();
+    const criticalSignals = {
 
+        typosquatting: false,
 
-            /*
-             * Typosquatting
-             */
+        suspiciousBrand: false,
 
-            if (
-                message.includes(
-                    "ressemble au domaine officiel"
-                ) ||
-                message.includes(
-                    "forte similarité avec"
-                )
-            ) {
+        credentialRequest: false,
 
-                hasCriticalSignal = true;
-            }
+        financialRequest: false,
+
+        dangerousAttachment: false,
+
+        suspiciousLink: false,
+
+        urgency: false
+    };
 
 
-            /*
-             * Marque dans un sous-domaine
-             */
+    /*
+    * ==========================================
+    * ANALYSE DES WARNINGS
+    * ==========================================
+    */
 
-            if (
-                message.includes(
-                    "apparaît dans un sous-domaine"
-                )
-            ) {
+    warnings.forEach(warning => {
 
-                hasCriticalSignal = true;
-            }
+        const message =
+            (warning.message || "").toLowerCase();
 
 
-            /*
-             * Caractère @
-             */
+        /*
+        * Typosquatting
+        */
 
-            if (
-                message.includes(
-                    "caractère @"
-                )
-            ) {
+        if (
+            message.includes(
+                "ressemble au domaine officiel"
+            ) ||
+            message.includes(
+                "forte similarité avec"
+            ) ||
+            message.includes(
+                "caractères pouvant imiter"
+            )
+        ) {
 
-                hasCriticalSignal = true;
-            }
+            criticalSignals.typosquatting = true;
 
-
-            /*
-             * Authentification
-             */
-
-            if (
-                message.includes(
-                    "informations d'authentification"
-                ) ||
-                message.includes(
-                    "mot de passe"
-                )
-            ) {
-
-                hasCriticalSignal = true;
-            }
-
-
-            /*
-             * Informations financières
-             */
-
-            if (
-                message.includes(
-                    "informations financières"
-                )
-            ) {
-
-                hasCriticalSignal = true;
-            }
-
-
-            /*
-             * Extension dangereuse
-             */
-
-            if (
-                message.includes(
-                    "extension potentiellement dangereuse"
-                )
-            ) {
-
-                hasCriticalSignal = true;
-            }
-
-
-            /*
-             * Double extension
-             */
-
-            if (
-                message.includes(
-                    "double extension"
-                )
-            ) {
-
-                hasCriticalSignal = true;
-            }
+            hasCriticalSignal = true;
         }
-    );
 
+
+        /*
+        * Marque dans un domaine suspect
+        */
+
+        if (
+            message.includes(
+                "apparaît dans un sous-domaine"
+            ) ||
+            message.includes(
+                "contient la marque"
+            )
+        ) {
+
+            criticalSignals.suspiciousBrand = true;
+
+            hasCriticalSignal = true;
+        }
+
+
+        /*
+        * Demande d'authentification
+        */
+
+        if (
+            message.includes(
+                "informations d'authentification"
+            ) ||
+            message.includes(
+                "mot de passe"
+            ) ||
+            message.includes(
+                "code de vérification"
+            )
+        ) {
+
+            criticalSignals.credentialRequest = true;
+
+            hasCriticalSignal = true;
+        }
+
+
+        /*
+        * Demande financière
+        */
+
+        if (
+            message.includes(
+                "informations financières"
+            ) ||
+            message.includes(
+                "demande ou réclame un paiement"
+            )
+        ) {
+
+            criticalSignals.financialRequest = true;
+
+            hasCriticalSignal = true;
+        }
+
+
+        /*
+        * Pièce jointe dangereuse
+        */
+
+        if (
+            message.includes(
+                "extension potentiellement dangereuse"
+            ) ||
+            message.includes(
+                "extension dangereuse"
+            ) ||
+            message.includes(
+                "extension potentiellement dangereuse dissimulée"
+            )
+        ) {
+
+            criticalSignals.dangerousAttachment = true;
+
+            hasCriticalSignal = true;
+        }
+
+
+        /*
+        * Lien suspect
+        */
+
+        if (
+            warning.category === "link"
+        ) {
+
+            criticalSignals.suspiciousLink = true;
+        }
+
+
+        /*
+        * Urgence
+        */
+
+        if (
+            message.includes(
+                "langage d'urgence"
+            ) ||
+            message.includes(
+                "langage urgent"
+            )
+        ) {
+
+            criticalSignals.urgency = true;
+        }
+
+    });
+
+
+    /*
+    * ==========================================
+    * BONUS DE COMBINAISON
+    * ==========================================
+    *
+    * Les bonus récompensent la présence
+    * simultanée de plusieurs signaux.
+    *
+    * Maximum : 30 points.
+    */
+
+    let combinationBonus = 0;
+
+
+    /*
+    * Urgence + lien suspect
+    */
+
+    if (
+        criticalSignals.urgency &&
+        criticalSignals.suspiciousLink
+    ) {
+
+        combinationBonus += 5;
+    }
+
+
+    /*
+    * Urgence + authentification
+    */
+
+    if (
+        criticalSignals.urgency &&
+        criticalSignals.credentialRequest
+    ) {
+
+        combinationBonus += 5;
+    }
+
+
+    /*
+    * Authentification + lien suspect
+    */
+
+    if (
+        criticalSignals.credentialRequest &&
+        criticalSignals.suspiciousLink
+    ) {
+
+        combinationBonus += 5;
+    }
+
+
+    /*
+    * Typosquatting + authentification
+    */
+
+    if (
+        criticalSignals.typosquatting &&
+        criticalSignals.credentialRequest
+    ) {
+
+        combinationBonus += 5;
+    }
+
+
+    /*
+    * Marque suspecte + lien suspect
+    */
+
+    if (
+        criticalSignals.suspiciousBrand &&
+        criticalSignals.suspiciousLink
+    ) {
+
+        combinationBonus += 5;
+    }
+
+
+    /*
+    * Urgence + demande financière
+    */
+
+    if (
+        criticalSignals.urgency &&
+        criticalSignals.financialRequest
+    ) {
+
+        combinationBonus += 5;
+    }
+
+
+    /*
+    * Maximum du bonus
+    */
+
+    combinationBonus =
+        Math.min(
+            combinationBonus,
+            30
+        );
 
     /*
      * ==========================================
@@ -708,16 +980,48 @@ attachments.forEach(
      * Les plafonds totalisent exactement 100.
      */
 
-    const finalScore =
+    let finalScore =
+    Math.min(
+
+        Math.round(senderScore) +
+        Math.round(linkScore) +
+        Math.round(contentScore) +
+        Math.round(contextScore) +
+        Math.round(behaviorScore) +
+        Math.round(attachmentScore)+
+        combinationBonus,
+
+        100
+    );
+
+
+    /*
+    * ==========================================
+    * GARANTIE POUR LES SIGNAUX CRITIQUES
+    * ==========================================
+    *
+    * Un signal critique ne doit pas produire
+    * un score global artificiellement faible.
+    */
+
+    if (hasCriticalSignal) {
+
+        finalScore =
+            Math.max(
+                finalScore,
+                75
+            );
+    }
+
+
+    /*
+    * Sécurité finale :
+    * le score doit toujours rester entre 0 et 100.
+    */
+
+    finalScore =
         Math.min(
-
-            senderScore +
-            linkScore +
-            contentScore +
-            contextScore +
-            behaviorScore +
-            attachmentScore,
-
+            Math.max(finalScore, 0),
             100
         );
 
@@ -730,19 +1034,25 @@ attachments.forEach(
 
     let level = "low";
 
-    if (finalScore >= 75) {
+    if (
+        hasCriticalSignal ||
+        finalScore >= 75
+    ) {
 
         level = "critical";
 
-    } else if (finalScore >= 50) {
+    } else if (
+        finalScore >= 50
+    ) {
 
         level = "high";
 
-    } else if (finalScore >= 25) {
+    } else if (
+        finalScore >= 25
+    ) {
 
         level = "medium";
-
-    }
+}
 
 
     /*

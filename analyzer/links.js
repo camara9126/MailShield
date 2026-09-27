@@ -114,11 +114,20 @@ function analyzeLink(url) {
         typeof url !== "string"
     ) {
 
+        const httpPoints =
+            isTrustedDomain
+                ? 2
+                : 15;
+
+
+
         result.score = 40;
 
-        result.warnings.push(
-            "URL invalide ou absente."
-        );
+        result.warnings.push({
+            category: "https",
+            points: httpPoints,
+            message: "URL invalide ou absente."
+        });
 
         return result;
     }
@@ -134,22 +143,47 @@ function analyzeLink(url) {
 
     if (!parsedUrl.valid) {
 
+
+         const httpPoints =
+            isTrustedDomain
+                ? 2
+                : 15;
+
+                
         result.score = 40;
 
-        result.warnings.push(
-            "L'URL n'a pas pu être analysée."
-        );
+        result.warnings.push({
+            category: "https",
+            points: httpPoints,
+            message: "L'URL n'a pas pu être analysée."
+        });
 
         return result;
     }
 
 
+    if (
+        parsedUrl.username ||
+        parsedUrl.password
+    ) {
+
+        result.score += 30;
+
+        result.warnings.push({
+            category: "url-credentials",
+            points: 30,
+            message:
+                "Le lien contient des informations d'identification pouvant masquer le véritable domaine."
+        });
+    }
+
+    
     /*
      * Domaine
      */
 
     result.domain =
-        parsedUrl.hostname;
+        parsedUrl.rootDomain;
 
 
     /*
@@ -294,9 +328,11 @@ function analyzeLink(url) {
             httpPoints;
 
 
-        result.warnings.push(
-            "Le lien n'utilise pas HTTPS."
-        );
+        result.warnings.push({
+            category: "https",
+            points: httpPoints,
+            message: "Le lien n'utilise pas HTTPS."
+        });
     }
 
 
@@ -314,9 +350,11 @@ function analyzeLink(url) {
 
         result.score += 30;
 
-        result.warnings.push(
-            "Le lien contient le caractère @, pouvant masquer le véritable domaine."
-        );
+        result.warnings.push({
+            category: "url-obfuscation",
+            points: 30,
+            message: "Le lien contient le caractère @, pouvant masquer le véritable domaine."
+        });
     }
 
 
@@ -330,11 +368,19 @@ function analyzeLink(url) {
         parsedUrl.port !== "443"
     ) {
 
+         const httpPoints =
+            isTrustedDomain
+                ? 2
+                : 15;
+
+
         result.score += 10;
 
-        result.warnings.push(
-            `Le lien utilise un port inhabituel : ${parsedUrl.port}.`
-        );
+        result.warnings.push({
+            category: "https",
+            points: httpPoints,
+            message: `Le lien utilise un port inhabituel : ${parsedUrl.port}.`
+        });
     }
 
 
@@ -348,11 +394,19 @@ function analyzeLink(url) {
         )
     ) {
 
+         const httpPoints =
+            isTrustedDomain
+                ? 2
+                : 15;
+
+
         result.score += 20;
 
-        result.warnings.push(
-            "Une URL raccourcie a été détectée."
-        );
+        result.warnings.push({
+            category: "https",
+            points: httpPoints,
+            message: "Une URL raccourcie a été détectée."
+        });
     }
 
 
@@ -386,11 +440,20 @@ function analyzeLink(url) {
 
         if (!isTrustedDomain) {
 
+
+             const httpPoints =
+            isTrustedDomain
+                ? 2
+                : 15;
+
+
             result.score += 5;
 
-            result.warnings.push(
-                `Le chemin de l'URL contient le terme "${suspiciousPath}".`
-            );
+            result.warnings.push({
+                category: "https",
+                points: httpPoints,
+                message: `Le chemin de l'URL contient le terme "${suspiciousPath}".`
+            });
         }
     }
 
@@ -452,9 +515,11 @@ function analyzeLink(url) {
                 redirectPoints;
 
 
-            result.warnings.push(
-                "L'URL contient un paramètre pouvant être utilisé pour une redirection."
-            );
+            result.warnings.push({
+                category: "https",
+                points: redirectPoints,
+                message: "L'URL contient un paramètre pouvant être utilisé pour une redirection."
+            });
         }
     }
 

@@ -229,9 +229,11 @@ function detectSuspiciousBrandCombination(parsedUrl) {
 
             result.score += 25;
 
-            result.warnings.push(
-                `La marque "${brand}" apparaît dans un sous-domaine d'un autre domaine.`
-            );
+            result.warnings.push({
+            category: "brand",
+            points: 25,
+            message: `La marque "${brand}" apparaît dans un sous-domaine d'un autre domaine.`
+            });
 
             return result;
         }
@@ -260,9 +262,11 @@ function detectSuspiciousBrandCombination(parsedUrl) {
 
                     result.score += 25;
 
-                    result.warnings.push(
-                        `Le domaine contient la marque "${brand}" associée au terme "${term}".`
-                    );
+                    result.warnings.push({
+                        category: "brand",
+                        points: 25,
+                        message: `Le domaine contient la marque "${brand}" associée au terme "${term}".`
+                    });
 
                     return result;
                 }
@@ -290,40 +294,50 @@ function detectTyposquatting(rootDomain) {
         return result;
     }
 
+    const domain =
+        rootDomain.toLowerCase().trim();
+
 
     /*
      * ==========================================
-     * Comparaison uniquement avec les domaines
-     * complets de confiance.
-     *
-     * Exemple :
-     *
-     * paypa1.com
-     *       ↓
-     * paypal.com
-     *
-     * On ne compare PAS "paypa1" avec "paypal"
-     * séparément.
+     * DOMAINE OFFICIEL
      * ==========================================
      */
 
-    const normalizedDomain =
-        normalizeDomain(rootDomain);
+    if (
+        TRUSTED_DOMAINS.includes(domain)
+    ) {
+        return result;
+    }
 
+
+    /*
+     * ==========================================
+     * COMPARAISON AVEC LES DOMAINES DE CONFIANCE
+     * ==========================================
+     */
 
     for (const trustedDomain of TRUSTED_DOMAINS) {
 
-        const normalizedTrusted =
-            normalizeDomain(trustedDomain);
+        const trusted =
+            trustedDomain.toLowerCase().trim();
 
 
         /*
          * ==========================================
-         * CAS 1
+         * 1. DOMAINE TRÈS PROCHE
          * ==========================================
-         *
-         * Après normalisation, les deux domaines
-         * deviennent identiques.
+         */
+
+        const distance =
+            levenshteinDistance(
+                domain,
+                trusted
+            );
+
+
+        /*
+         * Une seule modification
          *
          * Exemple :
          *
@@ -332,45 +346,21 @@ function detectTyposquatting(rootDomain) {
          */
 
         if (
-            normalizedDomain === normalizedTrusted &&
-            rootDomain !== trustedDomain
-        ) {
-
-            result.score = 40;
-
-            result.warnings.push(
-                `Le domaine "${rootDomain}" ressemble au domaine officiel "${trustedDomain}".`
-            );
-
-            return result;
-        }
-
-
-        /*
-         * ==========================================
-         * CAS 2
-         * ==========================================
-         *
-         * Une seule différence.
-         */
-
-        const distance =
-            levenshteinDistance(
-                normalizedDomain,
-                normalizedTrusted
-            );
-
-
-        if (
             distance === 1 &&
-            normalizedTrusted.length >= 7
+            trusted.length >= 7
         ) {
 
             result.score = 35;
 
-            result.warnings.push(
-                `Le domaine "${rootDomain}" présente une forte similarité avec "${trustedDomain}".`
-            );
+            result.warnings.push({
+
+                category: "typosquatting",
+
+                points: 35,
+
+                message:
+                    `Le domaine "${rootDomain}" présente une forte similarité avec "${trustedDomain}".`
+            });
 
             return result;
         }
@@ -378,22 +368,60 @@ function detectTyposquatting(rootDomain) {
 
         /*
          * ==========================================
-         * CAS 3
+         * 2. DEUX MODIFICATIONS
          * ==========================================
-         *
-         * Deux différences.
          */
 
         if (
             distance === 2 &&
-            normalizedTrusted.length >= 8
+            trusted.length >= 8
         ) {
 
             result.score = 20;
 
-            result.warnings.push(
-                `Le domaine "${rootDomain}" présente une similarité avec "${trustedDomain}".`
-            );
+            result.warnings.push({
+
+                category: "typosquatting",
+
+                points: 35,
+
+                message:
+                    `Le domaine "${rootDomain}" présente une similarité avec "${trustedDomain}".`
+            });
+
+            return result;
+        }
+
+
+        /*
+         * ==========================================
+         * 3. HOMOGLYPHES / CARACTÈRES RESSEMBLANTS
+         * ==========================================
+         */
+
+        const normalizedDomain =
+            normalizeDomain(domain);
+
+        const normalizedTrusted =
+            normalizeDomain(trusted);
+
+
+        if (
+            normalizedDomain === normalizedTrusted &&
+            domain !== trusted
+        ) {
+
+            result.score = 40;
+
+            result.warnings.push({
+
+                category: "homoglyph",
+
+                points: 40,
+
+                message:
+                    `Le domaine "${rootDomain}" utilise des caractères pouvant imiter le domaine officiel "${trustedDomain}".`
+            });
 
             return result;
         }
@@ -444,9 +472,11 @@ function analyzeDomain(domain) {
 
         result.score += 30;
 
-        result.warnings.push(
-            "Le domaine est invalide ou malformé."
-        );
+        result.warnings.push({
+            category: "invalid-domain",
+            points: 30,
+            message: "Le domaine est invalide ou malformé."
+        });
 
         return result;
     }
@@ -486,9 +516,11 @@ function analyzeDomain(domain) {
 
         result.score += 30;
 
-        result.warnings.push(
-            "Le domaine utilise directement une adresse IP."
-        );
+        result.warnings.push({
+            category: "ip",
+            points: 30,
+            message: "Le domaine utilise directement une adresse IP."
+        });
     }
 
 
@@ -530,9 +562,11 @@ function analyzeDomain(domain) {
 
         result.score += 10;
 
-        result.warnings.push(
-            "Le domaine racine est particulièrement long."
-        );
+        result.warnings.push({
+            category: "long-domain",
+            points: 10,
+            message: "Le domaine racine est particulièrement long."   
+        });
     }
 
 
@@ -548,9 +582,11 @@ function analyzeDomain(domain) {
 
         result.score += 10;
 
-        result.warnings.push(
-            "Le domaine contient plusieurs sous-domaines."
-        );
+        result.warnings.push({
+            category: "multiple-subdomains",
+            points: 10,
+            message: "Le domaine contient plusieurs sous-domaines." 
+        });
     }
 
 
@@ -567,9 +603,11 @@ function analyzeDomain(domain) {
 
         result.score += 10;
 
-        result.warnings.push(
-            "Le domaine possède une structure inhabituelle."
-        );
+        result.warnings.push({
+            category: "unusual-domain",
+            points: 10,
+            message: "Le domaine possède une structure inhabituelle."
+        });
     }
 
 
