@@ -234,6 +234,12 @@ function detectSenderBrandImpersonation(senderName, domain) {
     };
 
 
+    /*
+     * ==========================================
+     * VÉRIFICATION
+     * ==========================================
+     */
+
     if (
         !senderName ||
         !domain
@@ -241,6 +247,12 @@ function detectSenderBrandImpersonation(senderName, domain) {
         return result;
     }
 
+
+    /*
+     * ==========================================
+     * NORMALISATION
+     * ==========================================
+     */
 
     const normalizedName =
         senderName
@@ -253,7 +265,9 @@ function detectSenderBrandImpersonation(senderName, domain) {
 
 
     /*
-     * Parcourir les domaines de confiance
+     * ==========================================
+     * PARCOURS DES DOMAINES DE CONFIANCE
+     * ==========================================
      */
 
     for (
@@ -267,9 +281,16 @@ function detectSenderBrandImpersonation(senderName, domain) {
                 .toLowerCase();
 
 
+        const normalizedTrustedDomain =
+            normalizeDomain(
+                trustedDomain
+            );
+
+
         /*
-         * La marque doit apparaître
-         * dans le nom affiché.
+         * ==========================================
+         * LA MARQUE N'EST PAS MENTIONNÉE
+         * ==========================================
          */
 
         if (
@@ -280,38 +301,104 @@ function detectSenderBrandImpersonation(senderName, domain) {
 
 
         /*
-         * Le domaine réel correspond
-         * déjà à la marque.
+         * ==========================================
+         * DOMAINE OFFICIEL
+         * ==========================================
          *
          * Exemple :
          *
          * PayPal Support
-         * security.paypal.com
-         *
-         * Pas de signal.
+         * security@paypal.com
          */
 
         if (
-            normalizedDomain.includes(
-                normalizeDomain(trustedDomain)
-            )
+            normalizedDomain ===
+            normalizedTrustedDomain
         ) {
+
             continue;
         }
 
 
         /*
-         * La marque est présente dans le nom
-         * mais le domaine ne correspond pas.
+         * ==========================================
+         * SOUS-DOMAINE OFFICIEL
+         * ==========================================
+         *
+         * Exemple :
+         *
+         * PayPal Support
+         * security@support.paypal.com
+         */
+
+        if (
+            normalizedDomain.endsWith(
+                normalizedTrustedDomain
+            )
+        ) {
+
+            continue;
+        }
+
+
+        /*
+         * ==========================================
+         * DOMAINE LIÉ À LA MARQUE
+         * ==========================================
+         *
+         * Exemple :
+         *
+         * paypal-security.com
+         *
+         * On ne considère pas automatiquement
+         * ce domaine comme une usurpation.
+         *
+         * Le domaine sera déjà analysé
+         * par analyzeDomain().
+         */
+
+        if (
+            normalizedDomain.includes(brand)
+        ) {
+
+            result.score = 5;
+
+            result.warnings.push({
+
+                category: "sender",
+
+                points: 5,
+
+                message:
+                    `Le nom de l'expéditeur mentionne "${brand}" et le domaine "${domain}" contient également cette marque mais n'est pas son domaine officiel.`
+
+            });
+
+            continue;
+        }
+
+
+        /*
+         * ==========================================
+         * USURPATION PROBABLE
+         * ==========================================
+         *
+         * La marque apparaît dans le nom
+         * mais le domaine n'a aucun lien évident
+         * avec celle-ci.
          */
 
         result.score = 15;
 
         result.warnings.push({
+
             category: "sender",
+
             points: 15,
+
             message:
                 `Le nom de l'expéditeur mentionne "${brand}" mais le domaine "${domain}" ne correspond pas au domaine officiel.`
+
         });
 
 

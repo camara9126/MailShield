@@ -735,27 +735,18 @@ function calculateRisk(email) {
             (warning.message || "").toLowerCase();
 
 
+
         /*
-        * Typosquatting
+        * Informations d'identification / caractère @
         */
 
         if (
-            message.includes(
-                "ressemble au domaine officiel"
-            ) ||
-            message.includes(
-                "forte similarité avec"
-            ) ||
-            message.includes(
-                "caractères pouvant imiter"
-            )
+            message.includes("informations d'identification") ||
+            message.includes("caractère @")
         ) {
-
-            criticalSignals.typosquatting = true;
 
             hasCriticalSignal = true;
         }
-
 
         /*
         * Marque dans un domaine suspect
