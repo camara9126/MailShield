@@ -13,6 +13,10 @@
       "storage"
   ],
 
+  "host_permissions": [
+        "http://127.0.0.1:8000/*"
+  ],
+
   "background": {
       "service_worker": "background.js"
   },
@@ -44,6 +48,7 @@
     {
       "matches": ["https://mail.google.com/*"],
       "js": [
+          "api.js",
           "analyzer/trusted-domains.js",
           "analyzer/domain-parser.js",
           "analyzer/domain-analyzer.js",

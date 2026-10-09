@@ -76,11 +76,11 @@ function showMailShieldPanel(risk) {
      */
 
     panel.style.position = "fixed";
-    panel.style.top = "20px";
+    panel.style.top = "10px";
     panel.style.right = "20px";
-    panel.style.width = "360px";
+    panel.style.width = "350px";
     panel.style.maxWidth = "calc(100vw - 40px)";
-    panel.style.maxHeight = "calc(80vh - 20px)";
+    panel.style.maxHeight = "calc(70vh - 15px)";
     panel.style.overflowY = "auto";
     panel.style.boxSizing = "border-box";
     panel.style.background = "#ffffff";

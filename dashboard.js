@@ -103,446 +103,243 @@ chrome.runtime.sendMessage({
 });
 
 
+
 /*
  * ==========================================
- * CHARGER L'HISTORIQUE
+ * CHARGER L'HISTORIQUE DEPUIS LARAVEL
  * ==========================================
  */
 
-chrome.runtime.sendMessage({
+async function loadLaravelHistory() {
+    const historyList = document.getElementById("historyList");
+    const riskFilter = document.getElementById("riskFilter");
 
-    type:
-        "GET_HISTORY"
+    historyList.innerHTML = "<p>Chargement de l'historique...</p>";
 
-}, response => {
+    try {
+        const analyses = await getMailShieldAnalyses();
 
-    if (
-        chrome.runtime.lastError
-    ) {
+        const history = analyses.map(analysis => ({
+            id: analysis.id,
+            sender: analysis.sender,
+            senderName: analysis.sender_name,
+            subject: analysis.subject,
+            score: Number(analysis.risk_score) || 0,
+            level: analysis.risk_level || "low",
+            date: analysis.analyzed_at || analysis.created_at,
+            recommendation: analysis.summary || "Aucune recommandation disponible.",
+            warnings: Array.isArray(analysis.signals)
+                ? analysis.signals.map(signal => ({
+                    category: signal.category,
+                    points: signal.points,
+                    message: signal.message
+                }))
+                : [],
+            breakdown: {}
+        }));
 
-        console.error(
-            "❌ MailShield — erreur historique :",
-            chrome.runtime.lastError.message
+        /*
+         * Statistiques calculées à partir des analyses Laravel
+         */
+        const total = history.length;
+        const sumScores = history.reduce(
+            (sum, item) => sum + item.score,
+            0
         );
 
-        return;
-    }
+        const statistics = {
+            total,
+            averageScore: total
+                ? Number((sumScores / total).toFixed(2))
+                : 0,
+            low: history.filter(item => item.level === "low").length,
+            medium: history.filter(item => item.level === "medium").length,
+            high: history.filter(item => item.level === "high").length,
+            critical: history.filter(item => item.level === "critical").length,
+            totalWarnings: history.reduce(
+                (sum, item) => sum + item.warnings.length,
+                0
+            )
+        };
 
+        document.getElementById("total").textContent = statistics.total;
+        document.getElementById("averageScore").textContent = statistics.averageScore;
+        document.getElementById("low").textContent = statistics.low;
+        document.getElementById("medium").textContent = statistics.medium;
+        document.getElementById("high").textContent = statistics.high;
+        document.getElementById("critical").textContent = statistics.critical;
+        document.getElementById("totalWarnings").textContent = statistics.totalWarnings;
+        document.getElementById("status").textContent =
+            "Historique et statistiques Laravel mis à jour.";
 
-    if (
-        !response ||
-        !response.success
-    ) {
+        function renderHistory(historyToDisplay) {
+            historyList.innerHTML = "";
+            historyList.className = "history-list";
 
-        return;
-    }
+            if (historyToDisplay.length === 0) {
+                historyList.innerHTML =
+                    '<p class="empty-history">Aucune analyse pour ce filtre.</p>';
+                return;
+            }
 
+            historyToDisplay.forEach(analysis => {
+                const item = document.createElement("div");
+                item.className = "history-item";
+                item.style.cursor = "pointer";
 
-    const history =
-        Array.isArray(response.history)
-            ? response.history
-            : [];
+                item.addEventListener("click", () => {
+                    const detail = document.getElementById("analysisDetail");
+                    const detailContent = document.getElementById("detailContent");
 
+                    const warningsHtml = analysis.warnings.length
+                        ? analysis.warnings.map(warning => `
+                            <div class="warning-item">
+                                ⚠️ ${escapeHtml(warning.message || "")}
+                            </div>
+                        `).join("")
+                        : "<p>Aucun signal détecté.</p>";
 
-            
-    const historyList =
-        document.getElementById(
-            "historyList"
-        );
-        
-
-        
-    const riskFilter =
-        document.getElementById(
-            "riskFilter"
-        );
-
-    console.log(
-        "🛡️ MailShield — riskFilter :",
-        riskFilter
-    );
-
-    /*
-     * Aucun historique
-     */
-
-    if (
-        history.length === 0
-    ) {
-
-        historyList.innerHTML = `
-
-            <p class="empty-history">
-
-                Aucune analyse enregistrée.
-
-            </p>
-
-        `;
-
-        return;
-    }
-
-
-    /*
-     * Conteneur
-     */
-
-    historyList.innerHTML = "";
-
-    historyList.className =
-        "history-list";
-
-
-    /*
-     * Afficher les analyses
-     */
-
-    const selectedLevel =
-    riskFilter
-        ? riskFilter.value
-        : "all";
-
-
-    function renderHistory(historyToDisplay) {
-
-        historyList.innerHTML = "";
-
-        historyToDisplay.forEach(analysis => {
-
-            const item =
-                document.createElement("div");
-
-
-            item.className =
-                "history-item";
-
-
-            item.style.cursor = "pointer";
-
-            item.addEventListener(
-                "click",
-                () => {
-
-                    console.log(
-                        "🛡️ MailShield — analyse sélectionnée :",
-                        analysis
-                    );
-
-
-                    const detail =
-                        document.getElementById(
-                            "analysisDetail"
-                        );
-
-
-                    const detailContent =
-                        document.getElementById(
-                            "detailContent"
-                        );
-
-
-                detailContent.innerHTML = `
-
+                    detailContent.innerHTML = `
                         <div class="detail-score">
-
                             <strong>
                                 ${getRiskIcon(analysis.level)}
                                 ${analysis.score} / 100
                             </strong>
-
                             <span class="detail-level ${getRiskClass(analysis.level)}">
                                 ${getRiskText(analysis.level)}
                             </span>
-
                         </div>
-
 
                         <div class="detail-recommendation">
-
-                            <strong>💡 Recommandation</strong>
-
-                            <p>
-                                ${escapeHtml(
-                                    analysis.recommendation ||
-                                    "Aucune recommandation disponible."
-                                )}
-                            </p>
-
+                            <strong>💡 Résumé / recommandation</strong>
+                            <p>${escapeHtml(analysis.recommendation || "")}</p>
                         </div>
 
-
                         <div class="detail-section">
-
                             <h3>⚠️ Signaux détectés</h3>
-
-                            <div id="detailWarnings">
-
-                                ${
-                                    Array.isArray(
-                                        analysis.warnings
-                                    ) && analysis.warnings.length > 0
-
-                                    ?
-
-                                    analysis.warnings
-                                        .map(warning => `
-
-                                            <div class="warning-item">
-
-                                                ⚠️
-
-                                                ${escapeHtml(
-                                                    warning.message ||
-                                                    warning
-                                                )}
-
-                                            </div>
-
-                                        `)
-                                        .join("")
-
-                                    :
-
-                                    `<p>
-                                        Aucun signal détecté.
-                                    </p>`
-                                }
-
-                            </div>
-
+                            ${warningsHtml}
                         </div>
-
 
                         <div class="detail-section">
-
-                            <h3>📊 Analyse</h3>
-
-                            <div class="detail-breakdown">
-
-                                <div>
-                                    👤 Expéditeur :
-                                    <strong>
-                                        ${analysis.breakdown?.sender ?? 0}
-                                    </strong>
-                                </div>
-
-                                <div>
-                                    🔗 Liens :
-                                    <strong>
-                                        ${analysis.breakdown?.links ?? 0}
-                                    </strong>
-                                </div>
-
-                                <div>
-                                    📝 Contenu :
-                                    <strong>
-                                        ${analysis.breakdown?.content ?? 0}
-                                    </strong>
-                                </div>
-
-                                <div>
-                                    🌐 Contexte :
-                                    <strong>
-                                        ${analysis.breakdown?.context ?? 0}
-                                    </strong>
-                                </div>
-
-                                <div>
-                                    🧠 Comportement :
-                                    <strong>
-                                        ${analysis.breakdown?.behavior ?? 0}
-                                    </strong>
-                                </div>
-
-                                <div>
-                                    📎 Pièces jointes :
-                                    <strong>
-                                        ${analysis.breakdown?.attachments ?? 0}
-                                    </strong>
-                                </div>
-
-                            </div>
-
+                            <h3>📅 Date d'analyse</h3>
+                            <p>${analysis.date
+                                ? escapeHtml(new Date(analysis.date).toLocaleString("fr-FR"))
+                                : "Date inconnue"}
+                            </p>
                         </div>
 
+                        <div class="detail-actions">
+                            <button type="button" id="deleteAnalysisButton" class="delete-analysis-button">
+                                🗑️ Supprimer cette analyse
+                            </button>
+                        </div>
                     `;
 
+                    const deleteButton = document.getElementById("deleteAnalysisButton");
 
-                    detail.style.display =
-                        "block";
+                    deleteButton.addEventListener("click", async (event) => {
+                        event.stopPropagation();
 
+                        const confirmed = confirm(
+                            "Voulez-vous vraiment supprimer cette analyse ? Cette action est irréversible."
+                        );
 
-                    detail.scrollIntoView({
-                        behavior: "smooth"
+                        if (!confirmed) {
+                            return;
+                        }
+
+                        deleteButton.disabled = true;
+                        deleteButton.textContent = "Suppression en cours...";
+
+                        try {
+                            await deleteMailShieldAnalysis(analysis.id);
+
+                            alert("Analyse supprimée avec succès.");
+
+                            // Fermer les détails
+                            detail.style.display = "none";
+
+                            // Recharger l'historique depuis Laravel
+                            await loadLaravelHistory();
+
+                        } catch (error) {
+                            console.error("Erreur lors de la suppression :", error);
+
+                            alert(error.message || "Impossible de supprimer cette analyse.");
+
+                            deleteButton.disabled = false;
+                            deleteButton.textContent = "🗑️ Supprimer cette analyse";
+                        }
                     });
 
-                }
-            );
+                    detail.style.display = "block";
+                    detail.scrollIntoView({ behavior: "smooth" });
+                });
 
-
-            /*
-            * Niveau
-            */
-
-            let levelText =
-                "Faible";
-
-
-            if (
-                analysis.level === "medium"
-            ) {
-
-                levelText =
-                    "Moyen";
-
-            }
-
-            else if (
-                analysis.level === "high"
-            ) {
-
-                levelText =
-                    "Élevé";
-
-            }
-
-            else if (
-                analysis.level === "critical"
-            ) {
-
-                levelText =
-                    "Critique";
-
-            }
-
-
-            const levelClass =
-                `level-${analysis.level}`;
-
-
-            /*
-            * Date
-            */
-
-            const date =
-                analysis.date
-                    ? new Date(
-                        analysis.date
-                    ).toLocaleString("fr-FR")
+                const date = analysis.date
+                    ? new Date(analysis.date).toLocaleString("fr-FR")
                     : "";
 
+                const levelText = getRiskText(analysis.level)
+                    .replace("RISQUE ", "");
 
-            /*
-            * HTML
-            */
-
-            item.innerHTML = `
-
-                <div class="history-info">
-
-                    <div class="history-sender">
-
-                        ${escapeHtml(
-                            analysis.senderName ||
-                            analysis.sender ||
-                            "Expéditeur inconnu"
-                        )}
-
+                item.innerHTML = `
+                    <div class="history-info">
+                        <div class="history-sender">
+                            ${escapeHtml(analysis.senderName || analysis.sender || "Expéditeur inconnu")}
+                        </div>
+                        <div class="history-subject">
+                            ${escapeHtml(analysis.subject || "Sans sujet")}
+                        </div>
+                        <div class="history-subject">
+                            ${escapeHtml(date)}
+                        </div>
                     </div>
 
-                    <div class="history-subject">
-
-                        ${escapeHtml(
-                            analysis.subject ||
-                            "Sans sujet"
-                        )}
-
+                    <div class="history-score">
+                        ${analysis.score} / 100
                     </div>
 
-                    <div class="history-subject">
-
-                        ${date}
-
+                    <div class="history-level level-${analysis.level}">
+                        ${escapeHtml(levelText)}
                     </div>
+                `;
 
-                </div>
-
-
-                <div class="history-score">
-
-                    ${analysis.score} / 100
-
-                </div>
-
-
-                <div class="history-level ${levelClass}">
-
-                    ${levelText}
-
-                </div>
-
-            `;
-
-
-            historyList.appendChild(
-                item
-            );
-
-        });
-
-
-    };
+                historyList.appendChild(item);
+            });
+        }
 
         renderHistory(history);
 
-        console.log(
-            "🛡️ TEST — arrivée avant le filtre"
-        );
-
         if (riskFilter) {
+            riskFilter.onchange = () => {
+                const selectedLevel = riskFilter.value;
 
-            riskFilter.addEventListener(
-                "change",
-                () => {
+                const filteredHistory = selectedLevel === "all"
+                    ? history
+                    : history.filter(item => item.level === selectedLevel);
 
-                    const selectedLevel =
-                        riskFilter.value;
-
-                    console.log(
-                        "🛡️ Filtre sélectionné :",
-                        selectedLevel
-                    );
-
-                    const filteredHistory =
-                        selectedLevel === "all"
-
-                            ? history
-
-                            : history.filter(
-                                analysis =>
-                                    analysis.level === selectedLevel
-                            );
-
-                    console.log(
-                        "🛡️ Analyses après filtrage :",
-                        filteredHistory.length
-                    );
-
-                    renderHistory(
-                        filteredHistory
-                    );
-
-                }
-            );
-
+                renderHistory(filteredHistory);
+            };
         }
 
-        console.log(
-            "🛡️ TEST — après le filtre"
-        );
-    
-});
+    } catch (error) {
+        console.error("MailShield — chargement de l'historique Laravel :", error);
+
+        historyList.innerHTML = `
+            <p class="empty-history">
+                Impossible de charger l'historique depuis Laravel.
+                Vérifiez votre connexion et votre session.
+            </p>
+        `;
+
+        document.getElementById("status").textContent =
+            error.message || "Erreur lors du chargement de l'historique.";
+    }
+}
+
+loadLaravelHistory();
+
 
 
     /*
@@ -642,3 +439,148 @@ chrome.runtime.sendMessage({
 
             }
         );
+
+
+
+    /*
+    * ==========================================
+    * MAILSHIELD — AUTHENTIFICATION DU DASHBOARD
+    * ==========================================
+    */
+
+    document.addEventListener("DOMContentLoaded", async () => {
+        const loginSection = document.getElementById("loginSection");
+        const dashboardContent = document.getElementById("dashboardContent");
+        const loginForm = document.getElementById("loginForm");
+        const loginEmail = document.getElementById("loginEmail");
+        const loginPassword = document.getElementById("loginPassword");
+        const loginButton = document.getElementById("loginButton");
+        const loginMessage = document.getElementById("loginMessage");
+        const userInfo = document.getElementById("userInfo");
+
+        function showLogin(message = "") {
+            loginSection.style.display = "block";
+            dashboardContent.style.display = "none";
+            userInfo.textContent = "";
+            loginMessage.textContent = message;
+        }
+
+        function showDashboard(user) {
+            loginSection.style.display = "none";
+            dashboardContent.style.display = "block";
+
+            userInfo.textContent = user?.email
+                ? `Connecté : ${user.email}`
+                : "Connecté à MailShield";
+        }
+
+        /*
+        * Vérifier la session au chargement
+        */
+        try {
+            const user = await getCurrentMailShieldUser();
+
+            if (user) {
+                showDashboard(user);
+            } else {
+                showLogin(
+                    "Votre session est absente ou expirée. Veuillez vous connecter."
+                );
+            }
+        } catch (error) {
+            console.error(
+                "MailShield — vérification de session :",
+                error
+            );
+
+            showLogin(
+                "Impossible de vérifier votre session. Vérifiez votre connexion au serveur puis réessayez."
+            );
+        }
+
+        /*
+        * Gérer la connexion
+        */
+        loginForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
+
+            const email = loginEmail.value.trim();
+            const password = loginPassword.value;
+
+            loginButton.disabled = true;
+            loginButton.textContent = "Connexion en cours...";
+            loginMessage.textContent = "";
+
+            try {
+                await loginMailShield(email, password);
+
+                // Confirmer la validité du jeton et récupérer le compte.
+                const user = await getCurrentMailShieldUser();
+
+                if (!user) {
+                    showLogin(
+                        "Connexion non confirmée. Veuillez réessayer."
+                    );
+                    return;
+                }
+
+                loginPassword.value = "";
+                showDashboard(user);
+
+            } catch (error) {
+                console.error(
+                    "MailShield — erreur de connexion :",
+                    error
+                );
+
+                showLogin(
+                    error.message || "La connexion a échoué."
+                );
+            } finally {
+                loginButton.disabled = false;
+                loginButton.textContent = "Se connecter";
+            }
+        });
+    });
+
+
+
+    
+/*
+ * ==========================================
+ * MAILSHIELD — DÉCONNEXION
+ * ==========================================
+ */
+
+document.addEventListener("DOMContentLoaded", () => {
+    const logoutButton = document.getElementById("logoutButton");
+
+    if (!logoutButton) {
+        return;
+    }
+
+    logoutButton.addEventListener("click", async () => {
+        logoutButton.disabled = true;
+        logoutButton.textContent = "Déconnexion...";
+
+        try {
+            await logoutMailShield();
+
+            document.getElementById("loginForm").reset();
+            document.getElementById("loginSection").style.display = "block";
+            document.getElementById("dashboardContent").style.display = "none";
+            document.getElementById("loginMessage").textContent =
+                "Vous êtes déconnecté.";
+
+            document.getElementById("userInfo").textContent = "";
+        } catch (error) {
+            console.error("MailShield — erreur de déconnexion :", error);
+
+            document.getElementById("loginMessage").textContent =
+                "La déconnexion a rencontré un problème.";
+        } finally {
+            logoutButton.disabled = false;
+            logoutButton.textContent = "Déconnexion";
+        }
+    });
+});

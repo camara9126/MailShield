@@ -42,33 +42,56 @@ padding: 32px;
 HEADER
 ========================================== */
 
+
+/* Bouton de déconnexion */
+
 .header {
+    display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
 
+    background:
+        linear-gradient(
+            135deg,
+            #111827,
+            #1f2937
+        );
 
-position: relative;
+    color: white;
 
-background:
-    linear-gradient(
-        135deg,
-        #111827,
-        #1f2937
-    );
+    border-radius: 20px;
 
-color: white;
+    margin-bottom: 30px;
 
-padding: 30px 32px;
+    overflow: hidden;
 
-border-radius: 20px;
-
-margin-bottom: 30px;
-
-overflow: hidden;
-
-box-shadow:
-    0 10px 30px rgba(15, 23, 42, 0.15);
-
+    box-shadow:
+        0 10px 30px rgba(15, 23, 42, 0.15);
 
 }
+
+#logoutButton {
+    padding: 10px 10px;
+    border: 1px solid #dc2626;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #dc2626;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+#logoutButton:hover:not(:disabled) {
+    background: #dc2626;
+    color: #ffffff;
+}
+
+#logoutButton:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 
 .header::after {
 
@@ -79,9 +102,6 @@ position: absolute;
 
 width: 180px;
 height: 180px;
-
-right: -60px;
-top: -80px;
 
 border-radius: 50%;
 
@@ -125,6 +145,7 @@ font-size: 14px;
 
 
 }
+
 
 /* ==========================================
 TITRES
@@ -785,6 +806,32 @@ color:
 
 }
 
+.detail-actions {
+    margin-top: 24px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.delete-analysis-button {
+    padding: 10px 16px;
+    border: 1px solid #dc2626;
+    border-radius: 8px;
+    background: #fff;
+    color: #dc2626;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.delete-analysis-button:hover:not(:disabled) {
+    background: #dc2626;
+    color: #fff;
+}
+
+.delete-analysis-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 /* ==========================================
 SCORE DÉTAIL
 ========================================== */
@@ -1197,4 +1244,133 @@ RESPONSIVE
         20px;
 }
 
+}
+
+
+/* ==========================================
+   MAILSHIELD — SECTION DE CONNEXION
+   ========================================== */
+
+.login-section {
+    width: 100%;
+    max-width: 460px;
+    box-sizing: border-box;
+    margin: 40px auto;
+    padding: 32px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    box-shadow: 0 8px 30px rgba(15, 23, 42, 0.08);
+}
+
+.login-section h2 {
+    margin: 0 0 12px;
+    color: #0f172a;
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.login-section > p {
+    margin: 0 0 28px;
+    color: #64748b;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+#loginForm {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+#loginForm .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+#loginForm label {
+    color: #334155;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+#loginForm input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 13px 14px;
+    border: 1px solid #cbd5e1;
+    border-radius: 9px;
+    background: #f8fafc;
+    color: #0f172a;
+    font-family: inherit;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s,
+                background 0.2s;
+}
+
+#loginForm input::placeholder {
+    color: #94a3b8;
+}
+
+#loginForm input:focus {
+    border-color: #2563eb;
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+#loginButton {
+    width: 100%;
+    margin-top: 4px;
+    padding: 14px 18px;
+    border: none;
+    border-radius: 9px;
+    background: #2563eb;
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
+}
+
+#loginButton:hover:not(:disabled) {
+    background: #1d4ed8;
+    transform: translateY(-1px);
+}
+
+#loginButton:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+#loginButton:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
+#loginMessage {
+    margin: 0;
+    color: #dc2626;
+    font-size: 13px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+#loginMessage:empty {
+    display: none;
+}
+
+/* Adaptation aux petits écrans */
+
+@media (max-width: 520px) {
+    .login-section {
+        margin: 20px auto;
+        padding: 24px 18px;
+        border-radius: 12px;
+    }
+
+    .login-section h2 {
+        font-size: 21px;
+    }
 }

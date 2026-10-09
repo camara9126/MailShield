@@ -17,213 +17,246 @@
 
     <div class="dashboard">
 
+        
         <header class="header">
 
             <div>
-
                 <h1>🛡️ MailShield</h1>
-
-                <p>
-                    Tableau de bord de sécurité
-                </p>
-
+                <p>Tableau de bord de sécurité</p>
+                <p id="userInfo"></p>
             </div>
 
+            <button type="button" id="logoutButton">
+                Déconnexion
+            </button>
+            
         </header>
 
 
         <main>
 
-            <section class="overview">
-
-                <h2>📊 Vue d'ensemble</h2>
-
-
-                <div class="cards">
-
-                    <div class="card">
-
-                        <span class="card-title">
-                            Emails analysés
-                        </span>
-
-                        <strong id="total">
-                            0
-                        </strong>
-
-                    </div>
-
-
-                    <div class="card">
-
-                        <span class="card-title">
-                            Score moyen
-                        </span>
-
-                        <strong id="averageScore">
-                            0
-                        </strong>
-
-                    </div>
-
-
-                    <div class="card low">
-
-                        <span class="card-title">
-                            🟢 Risque faible
-                        </span>
-
-                        <strong id="low">
-                            0
-                        </strong>
-
-                    </div>
-
-
-                    <div class="card medium">
-
-                        <span class="card-title">
-                            🟠 Risque moyen
-                        </span>
-
-                        <strong id="medium">
-                            0
-                        </strong>
-
-                    </div>
-
-
-                    <div class="card high">
-
-                        <span class="card-title">
-                            🔴 Risque élevé
-                        </span>
-
-                        <strong id="high">
-                            0
-                        </strong>
-
-                    </div>
-
-
-                    <div class="card critical">
-
-                        <span class="card-title">
-                            🚨 Risque critique
-                        </span>
-
-                        <strong id="critical">
-                            0
-                        </strong>
-
-                    </div>
-
-                </div>
-
-            </section>
-
-
-            <section class="signals">
-
-                <div class="signal-card">
-
-                    <span>
-                        ⚠️ Signaux détectés
-                    </span>
-
-                    <strong id="totalWarnings">
-                        0
-                    </strong>
-
-                </div>
-
-            </section>
-
-
-            <div class="history-filter">
-
-                <label for="riskFilter">
-                    Filtrer :
-                </label>
-
-                <select id="riskFilter">
-
-                    <option value="all">
-                        Toutes
-                    </option>
-
-                    <option value="low">
-                        🟢 Risque faible
-                    </option>
-
-                    <option value="medium">
-                        🟠 Risque moyen
-                    </option>
-
-                    <option value="high">
-                        🔴 Risque élevé
-                    </option>
-
-                    <option value="critical">
-                        🚨 Risque critique
-                    </option>
-
-                </select>
-
-            </div>
-
             
-            <section class="history">
+            <section id="loginSection" class="login-section" style="display: none;">
 
-                <h2>🕐 Dernières analyses</h2>
+                <h2>🔐 Connexion à MailShield</h2>
 
-                <div id="historyList">
+                <p>Connectez-vous pour accéder à votre compte et à vos analyses.</p>
 
-                    <p class="empty-history">
-                        Chargement de l'historique...
-                    </p>
+                <form id="loginForm">
 
-                </div>
+                    <div class="form-group">
+                        <label for="loginEmail">Adresse e-mail</label>
+                        <input type="email" id="loginEmail" name="email" placeholder="vous@exemple.com" autocomplete="username" required>
+                    </div>
 
-            </section>
+                    <div class="form-group">
+                        <label for="loginPassword">Mot de passe</label>
+                        <input type="password" id="loginPassword" name="password" placeholder="Votre mot de passe" autocomplete="current-password" required >
+                    </div>
 
-
-            <section class="analysis-detail" id="analysisDetail">
-
-                <div class="detail-header">
-
-                    <h2>🔎 Détail de l'analyse</h2>
-
-                    <button id="closeDetail">
-                        ✕
+                    <button type="submit" id="loginButton">
+                        Se connecter
                     </button>
 
+                    <p id="loginMessage" role="status" aria-live="polite"></p>
+
+                </form>
+
+            </section>
+
+            <div id="dashboardContent" style="display: none;">
+
+                <section class="overview">
+
+                    <h2>📊 Vue d'ensemble</h2>
+
+
+                    <div class="cards">
+
+                        <div class="card">
+
+                            <span class="card-title">
+                                Emails analysés
+                            </span>
+
+                            <strong id="total">
+                                0
+                            </strong>
+
+                        </div>
+
+
+                        <div class="card">
+
+                            <span class="card-title">
+                                Score moyen
+                            </span>
+
+                            <strong id="averageScore">
+                                0
+                            </strong>
+
+                        </div>
+
+
+                        <div class="card low">
+
+                            <span class="card-title">
+                                🟢 Risque faible
+                            </span>
+
+                            <strong id="low">
+                                0
+                            </strong>
+
+                        </div>
+
+
+                        <div class="card medium">
+
+                            <span class="card-title">
+                                🟠 Risque moyen
+                            </span>
+
+                            <strong id="medium">
+                                0
+                            </strong>
+
+                        </div>
+
+
+                        <div class="card high">
+
+                            <span class="card-title">
+                                🔴 Risque élevé
+                            </span>
+
+                            <strong id="high">
+                                0
+                            </strong>
+
+                        </div>
+
+
+                        <div class="card critical">
+
+                            <span class="card-title">
+                                🚨 Risque critique
+                            </span>
+
+                            <strong id="critical">
+                                0
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                </section>
+
+
+                <section class="signals">
+
+                    <div class="signal-card">
+
+                        <span>
+                            ⚠️ Signaux détectés
+                        </span>
+
+                        <strong id="totalWarnings">
+                            0
+                        </strong>
+
+                    </div>
+
+                </section>
+
+
+                <div class="history-filter">
+
+                    <label for="riskFilter">
+                        Filtrer :
+                    </label>
+
+                    <select id="riskFilter">
+
+                        <option value="all">
+                            Toutes
+                        </option>
+
+                        <option value="low">
+                            🟢 Risque faible
+                        </option>
+
+                        <option value="medium">
+                            🟠 Risque moyen
+                        </option>
+
+                        <option value="high">
+                            🔴 Risque élevé
+                        </option>
+
+                        <option value="critical">
+                            🚨 Risque critique
+                        </option>
+
+                    </select>
+
                 </div>
 
-                <div id="detailContent">
+                
+                <section class="history">
 
-                    <p>
-                        Sélectionnez une analyse dans l'historique.
+                    <h2>🕐 Dernières analyses</h2>
+
+                    <div id="historyList">
+
+                        <p class="empty-history">
+                            Chargement de l'historique...
+                        </p>
+
+                    </div>
+
+                </section>
+
+
+                <section class="analysis-detail" id="analysisDetail">
+
+                    <div class="detail-header">
+
+                        <h2>🔎 Détail de l'analyse</h2>
+
+                        <button id="closeDetail">
+                            ✕
+                        </button>
+
+                    </div>
+
+                    <div id="detailContent">
+
+                        <p>
+                            Sélectionnez une analyse dans l'historique.
+                        </p>
+
+                    </div>
+
+                </section>
+
+
+                <section class="status">
+
+                    <p id="status">
+                        Chargement des statistiques...
                     </p>
 
-                </div>
-
-            </section>
-
-
-            <section class="status">
-
-                <p id="status">
-                    Chargement des statistiques...
-                </p>
-
-            </section>
+                </section>
+            </div>
 
         </main>
 
     </div>
 
-
+    <script src="api.js"></script>
     <script src="dashboard.js"></script>
 
 </body>

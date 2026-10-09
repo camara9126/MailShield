@@ -398,12 +398,46 @@ async function detectEmail() {
 
 
         /*
-        * Affichage du panneau
+        * ==========================================
+        * ENREGISTREMENT DE L'ANALYSE DANS LARAVEL
+        * ==========================================
         */
 
-        showMailShieldPanel(
-            risk
-        );
+        // L'affichage local ne doit pas dépendre
+        // de la disponibilité du serveur Laravel.
+
+        showMailShieldPanel(risk);
+
+        // Enregistrement uniquement si l'utilisateur
+        // est connecté à MailShield.
+        if (typeof sendMailShieldAnalysis === "function") {
+
+            saveRiskAnalysisToLaravel(email, risk)
+                .then(result => {
+
+                    console.log(
+                        "✅ MailShield — analyse enregistrée dans Laravel :",
+                        result.analysis?.id
+                    );
+
+                })
+                .catch(error => {
+
+                    console.error(
+                        "⚠️ MailShield — échec de l'enregistrement Laravel :",
+                        error.message
+                    );
+
+                });
+
+        } else {
+
+            console.warn(
+                "MailShield — client API indisponible."
+            );
+
+        }
+
     } finally {
 
         analysisInProgress = false;
