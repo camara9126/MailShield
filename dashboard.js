@@ -9,100 +9,6 @@ console.log(
 );
 
 
-/*
- * ==========================================
- * RÉCUPÉRER LES STATISTIQUES
- * ==========================================
- */
-
-chrome.runtime.sendMessage({
-
-    type:
-        "GET_STATISTICS"
-
-}, response => {
-
-    if (
-        chrome.runtime.lastError
-    ) {
-
-        console.error(
-            "❌ MailShield — erreur dashboard :",
-            chrome.runtime.lastError.message
-        );
-
-        document.getElementById("status")
-            .textContent =
-                "Impossible de charger les statistiques.";
-
-        return;
-    }
-
-
-    if (
-        !response ||
-        !response.success
-    ) {
-
-        document.getElementById("status")
-            .textContent =
-                "Aucune statistique disponible.";
-
-        return;
-    }
-
-
-    const statistics =
-        response.statistics;
-
-
-    /*
-     * ======================================
-     * AFFICHAGE
-     * ======================================
-     */
-
-    document.getElementById("total")
-        .textContent =
-            statistics.total;
-
-
-    document.getElementById("averageScore")
-        .textContent =
-            statistics.averageScore;
-
-
-    document.getElementById("low")
-        .textContent =
-            statistics.low;
-
-
-    document.getElementById("medium")
-        .textContent =
-            statistics.medium;
-
-
-    document.getElementById("high")
-        .textContent =
-            statistics.high;
-
-
-    document.getElementById("critical")
-        .textContent =
-            statistics.critical;
-
-
-    document.getElementById("totalWarnings")
-        .textContent =
-            statistics.totalWarnings;
-
-
-    document.getElementById("status")
-        .textContent =
-            "Statistiques mises à jour.";
-});
-
-
 
 /*
  * ==========================================
@@ -162,6 +68,136 @@ async function loadLaravelHistory() {
             )
         };
 
+
+        function renderRiskChart(statistics) {
+            const chart = document.getElementById("riskChart");
+
+            if (!chart) return;
+
+            const levels = [
+                { key: "low", label: "Risque faible", className: "low" },
+                { key: "medium", label: "Risque moyen", className: "medium" },
+                { key: "high", label: "Risque élevé", className: "high" },
+                { key: "critical", label: "Risque critique", className: "critical" }
+            ];
+
+            if (statistics.total === 0) {
+                chart.innerHTML =
+                    '<p class="risk-chart-empty">Aucune analyse disponible.</p>';
+                return;
+            }
+
+            chart.innerHTML = levels.map(level => {
+                const count = statistics[level.key] || 0;
+                const percentage = (count / statistics.total) * 100;
+
+                return `
+                    <div class="risk-chart-row">
+                        <div class="risk-chart-label">
+                            <span>${level.label}</span>
+                            <strong>${count} (${percentage.toFixed(1)} %)</strong>
+                        </div>
+
+                        <div
+                            class="risk-chart-track"
+                            role="progressbar"
+                            aria-label="${level.label}"
+                            aria-valuemin="0"
+                            aria-valuemax="${statistics.total}"
+                            aria-valuenow="${count}"
+                        >
+                            <div
+                                class="risk-chart-bar ${level.className}"
+                                style="width: ${percentage}%"
+                            ></div>
+                        </div>
+                    </div>
+                `;
+            }).join("");
+        }
+
+        renderRiskChart(statistics);
+
+
+        
+        function renderDailyAnalysisChart(history) {
+            const chart = document.getElementById("dailyAnalysisChart");
+
+            if (!chart) return;
+
+            if (history.length === 0) {
+                chart.innerHTML =
+                    '<p class="daily-chart-empty">Aucune analyse disponible.</p>';
+                return;
+            }
+
+            // Regrouper les analyses par date locale
+            const dailyCounts = {};
+
+            history.forEach(analysis => {
+                if (!analysis.date) return;
+
+                const date = new Date(analysis.date);
+
+                if (Number.isNaN(date.getTime())) return;
+
+                const key = [
+                    date.getFullYear(),
+                    String(date.getMonth() + 1).padStart(2, "0"),
+                    String(date.getDate()).padStart(2, "0")
+                ].join("-");
+
+                dailyCounts[key] = (dailyCounts[key] || 0) + 1;
+            });
+
+            const days = Object.entries(dailyCounts)
+                .sort(([dateA], [dateB]) => dateA.localeCompare(dateB));
+
+            if (days.length === 0) {
+                chart.innerHTML =
+                    '<p class="daily-chart-empty">Aucune date d’analyse disponible.</p>';
+                return;
+            }
+
+            const maxCount = Math.max(...days.map(([, count]) => count));
+
+            chart.innerHTML = days.map(([key, count]) => {
+                const [year, month, day] = key.split("-").map(Number);
+                const dateLabel = new Date(year, month - 1, day)
+                    .toLocaleDateString("fr-FR", {
+                        day: "2-digit",
+                        month: "short"
+                    });
+
+                const percentage = (count / maxCount) * 100;
+
+                return `
+                    <div class="daily-chart-row">
+                        <span class="daily-chart-date">${dateLabel}</span>
+
+                        <div
+                            class="daily-chart-track"
+                            role="progressbar"
+                            aria-label="${dateLabel}"
+                            aria-valuemin="0"
+                            aria-valuemax="${maxCount}"
+                            aria-valuenow="${count}"
+                        >
+                            <div
+                                class="daily-chart-bar"
+                                style="width: ${percentage}%"
+                            ></div>
+                        </div>
+
+                        <span class="daily-chart-count">${count}</span>
+                    </div>
+                `;
+            }).join("");
+        }
+
+        renderDailyAnalysisChart(history);
+
+
         document.getElementById("total").textContent = statistics.total;
         document.getElementById("averageScore").textContent = statistics.averageScore;
         document.getElementById("low").textContent = statistics.low;
@@ -171,6 +207,10 @@ async function loadLaravelHistory() {
         document.getElementById("totalWarnings").textContent = statistics.totalWarnings;
         document.getElementById("status").textContent =
             "Historique et statistiques Laravel mis à jour.";
+
+
+        
+
 
         function renderHistory(historyToDisplay) {
             historyList.innerHTML = "";
